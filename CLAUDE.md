@@ -17,8 +17,8 @@ schemas do painel (`shared/shemas/viamob360/*Site*Shema.ts`,
 `types/conteudo.ts` e `lib/data.ts` só espelham o que o site usa.
 
 Nasceu da base do site do PetHub360 (que veio do portal181); tudo de pet foi
-removido e o `.git` copiado do PetGo foi apagado (repositório novo, sem
-remote — o dono cria no GitHub). Roda local: `npm run dev`, ou
+removido e o `.git` copiado do PetGo foi apagado (repositório novo:
+github.com/hcprime-desv/viamob360, branch `main`). Roda local: `npm run dev`, ou
 `npm run build && npx next start` para testar como produção.
 
 ## Decisões (e o porquê)
