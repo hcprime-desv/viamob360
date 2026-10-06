@@ -7,7 +7,8 @@
 // flutuante (botão 💬 em todas as páginas) e o painel embutido da Home
 // (como em site_principal.png).
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Headset, Minus, Paperclip, SendHorizontal } from "lucide-react";
+import { MessageCircle, Minus, Paperclip, SendHorizontal, X } from "lucide-react";
+import Atendente from "./Atendente";
 import { useCidades, useConfiguracao } from "@/components/public/AoVivo";
 import {
   chatEncerrado, enviarMensagem, iniciarAtendimento, lerSessao, ouvirChat, ouvirMensagens, respostaInicial, salvarSessao,
@@ -124,7 +125,7 @@ function Conversa({ variante }: { variante: "janela" | "painel" }) {
     <>
       {bolhas.map((b, i) => (
         <div key={b.id} className={`linha-bolha ${b.quem}`}>
-          {variante === "painel" && b.quem === "agent" && <span className="avatar-central" aria-hidden><Headset size={16} /></span>}
+          {variante === "painel" && b.quem === "agent" && <span className="avatar-central" aria-hidden><Atendente tamanho={30} /></span>}
           <div className={`bubble ${b.quem}`}>
             {b.autor && <b className="autor">{b.autor}</b>}
             {b.texto.split("\n").map((l, k) => <span key={k} className="l">{l}</span>)}
@@ -163,13 +164,15 @@ function Entrada({ variante }: { variante: "janela" | "painel" }) {
   );
 }
 
-// Janela flutuante + botão 💬 (wireframe: .chat-launch / .chat).
+// Janela flutuante + botão 💬 (wireframe: .chat-launch / .chat; bola igual à
+// do portal181: ícone de balão, X quando aberta e balão de texto ao lado).
 export function ChatFlutuante() {
   const { aberto, alternar, titulo } = useChat();
   return (
     <>
       <button className="chat-launch" onClick={alternar} aria-label={aberto ? "Fechar chat" : "Abrir chat com a Central"} aria-expanded={aberto}>
-        💬<span className="chat-badge" />
+        {!aberto && <span className="chat-launch-balao">Fale com a Central</span>}
+        {aberto ? <X size={24} /> : <MessageCircle size={24} />}
       </button>
       <div className={`chat${aberto ? " open" : ""}`} role="dialog" aria-label={titulo}>
         <div className="chat-head">
@@ -189,7 +192,7 @@ export function ChatPainel() {
   return (
     <div className="chat-painel" id="central">
       <div className="chat-painel-head">
-        <span className="ic-central" aria-hidden><Headset size={22} /></span>
+        <span className="ic-central" aria-hidden><Atendente tamanho={40} /></span>
         <div>
           <b>{titulo} 24h</b>
           <small>Atendimento seguro e em tempo real para suporte, informações e emergências.</small>
