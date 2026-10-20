@@ -37,7 +37,7 @@ export function getAll(colecao: string, callback: (docs: any[]) => void): Unsubs
   return onSnapshot(colRef(colecao), (snap) => callback(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
 }
 
-// Leitura pontual (servidor e navegador). `tenant` = outro município (cidades).
+// Leitura pontual (servidor e navegador). `tenant` = outra operação (cidades).
 export async function getAllOnce(colecao: string, tenant?: string): Promise<any[]> {
   const snap = await getDocs(colRef(colecao, tenant));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -91,7 +91,7 @@ export async function criarComIdSequencial(colecao: string, data: Record<string,
   return id;
 }
 
-// Coleção RAIZ `cliente` (lista os municípios VIAMOB360). Pode estar
+// Coleção RAIZ `cliente` (lista as operações VIAMOB360). Pode estar
 // fechada pelas regras do Firestore — quem chama trata o erro.
 export async function listarClientesViaMob(): Promise<any[]> {
   const snap = await getDocs(query(collection(db, "cliente"), where("sistema", "==", "VIAMOB360")));

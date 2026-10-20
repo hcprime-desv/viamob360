@@ -1,22 +1,22 @@
 // Formulários do site → `leads_site` (módulo Site do painel → Interessados).
 // Validação espelha o LeadSiteShema do painel, com o MESMO validarCampo
 // (lib/compartilhado/validacoes.ts, gerado pelo painel). LGPD: só grava com
-// o aceite (aceite_lgpd + aceite_em). Prefeitura não tem formulário próprio
-// no site (tudo da prefeitura é no painel): usa o Contato, assunto
-// "Prefeitura / órgão público".
+// o aceite (aceite_lgpd + aceite_em). Operadora não tem formulário próprio
+// no site (tudo da operadora é no painel): usa o Contato, assunto
+// "Quero operar a plataforma".
 import { criarComIdSequencial } from "@/lib/firebase/gen";
 import { validarCampo } from "@/lib/compartilhado/validacoes";
 
 export type TipoFormulario = "motorista" | "empresa" | "contato";
-export const ASSUNTOS_CONTATO = ["Dúvida", "Sugestão", "Reclamação", "Prefeitura / órgão público", "Imprensa", "Outro"] as const;
+export const ASSUNTOS_CONTATO = ["Dúvida", "Sugestão", "Reclamação", "Quero operar a plataforma", "Imprensa", "Outro"] as const;
 
 export type DadosLead = {
-  nome: string; email: string; telefone: string; municipio: string; uf: string;
+  nome: string; email: string; telefone: string; cidade: string; uf: string;
   cpf: string; veiculo: string; cnpj: string; razao_social: string; colaboradores_estimados: string;
   assunto: string; mensagem: string; aceite: boolean;
 };
 export const LEAD_VAZIO: DadosLead = {
-  nome: "", email: "", telefone: "", municipio: "", uf: "", cpf: "", veiculo: "", cnpj: "", razao_social: "", colaboradores_estimados: "",
+  nome: "", email: "", telefone: "", cidade: "", uf: "", cpf: "", veiculo: "", cnpj: "", razao_social: "", colaboradores_estimados: "",
   assunto: "", mensagem: "", aceite: false,
 };
 
@@ -29,7 +29,7 @@ export function validarLead(tipo: TipoFormulario, d: DadosLead): Record<string, 
   if (!d.email.trim() && !d.telefone.trim()) e.telefone = "Informe e-mail ou celular.";
   if (tipo === "motorista") {
     p("cpf", validarCampo("cpf", d.cpf, { rotulo: "CPF", obrigatorio: true }));
-    if (!d.municipio.trim()) e.municipio = "Informe o município.";
+    if (!d.cidade.trim()) e.cidade = "Informe a cidade.";
   }
   if (tipo === "empresa") {
     if (!d.razao_social.trim()) e.razao_social = "Informe a razão social.";
@@ -49,7 +49,7 @@ export async function enviarLead(tipo: TipoFormulario, d: DadosLead): Promise<st
   const tipoLead = tipo === "contato" && d.assunto === "Imprensa" ? "imprensa" : tipo;
   return criarComIdSequencial("leads_site", {
     tipo: tipoLead, nome: d.nome.trim(), email: ou(d.email.toLowerCase()), telefone: dig(d.telefone),
-    municipio: d.municipio.trim(), uf: d.uf.trim().toUpperCase(),
+    cidade: d.cidade.trim(), uf: d.uf.trim().toUpperCase(),
     cpf: dig(d.cpf), veiculo: ou(d.veiculo), orgao: null, cargo: null,
     cnpj: dig(d.cnpj), razao_social: ou(d.razao_social),
     colaboradores_estimados: d.colaboradores_estimados ? Number(dig(d.colaboradores_estimados)) || null : null,

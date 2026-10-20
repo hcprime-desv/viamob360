@@ -1,0 +1,78 @@
+/* Estilo comum dos manuais ViaMob360 — impressão A4 pelo Chrome
+   (scripts/gerar-manual.mjs no site; cópia do estilo dos manuais do painel). Cores da marca: azul #0B4BB3, verde #0E7A36. */
+@page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+:root { --azul: #0B4BB3; --azul-escuro: #08307A; --verde: #0E7A36; --verde-claro: #E8F6EE; --azul-claro: #EAF1FC; --cinza: #5B6472; --borda: #D9DEE6; --alerta: #FFF6E5; --alerta-borda: #F5A623; --perigo: #FDECEC; --perigo-borda: #E5484D; }
+* { box-sizing: border-box; }
+html { font-size: 10.5pt; }
+body { font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: #1C2430; line-height: 1.5; margin: 0; background: #fff; }
+h1, h2, h3, h4 { font-family: "Segoe UI Semibold", "Segoe UI", Arial, sans-serif; color: var(--azul-escuro); line-height: 1.25; }
+h1 { font-size: 21pt; margin: 0 0 6pt; padding-bottom: 6pt; border-bottom: 3px solid var(--verde); break-before: page; }
+h2 { font-size: 14pt; margin: 16pt 0 6pt; color: var(--azul); break-after: avoid; }
+h3 { font-size: 11.5pt; margin: 12pt 0 4pt; color: var(--verde); break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 10pt 0 3pt; break-after: avoid; }
+p { margin: 0 0 6pt; }
+ul, ol { margin: 0 0 7pt; padding-left: 18pt; }
+li { margin-bottom: 2pt; }
+strong { color: #111; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 9pt; background: #F2F4F7; padding: 0 3pt; border-radius: 3px; }
+a { color: var(--azul); text-decoration: none; }
+
+/* Capa */
+.capa { height: 255mm; display: flex; flex-direction: column; justify-content: space-between; break-after: page; }
+.capa .topo { display: flex; justify-content: flex-start; }
+.capa .topo img { height: 30mm; }
+.capa .centro { margin-top: 30mm; }
+.capa .rotulo { color: var(--verde); font-weight: 700; letter-spacing: 2pt; text-transform: uppercase; font-size: 10pt; }
+.capa h1.titulo { font-size: 34pt; border: 0; break-before: auto; margin: 6pt 0; color: var(--azul-escuro); }
+.capa .sub { font-size: 14pt; color: var(--cinza); max-width: 140mm; }
+.capa .faixa { height: 8mm; background: linear-gradient(90deg, var(--azul) 0 50%, var(--verde) 50% 100%); border-radius: 4mm; margin: 14mm 0; }
+.capa .meta { color: var(--cinza); font-size: 10pt; border-top: 1px solid var(--borda); padding-top: 8pt; }
+.capa .meta td { padding: 2pt 14pt 2pt 0; border: 0; background: none; }
+
+/* Sumário */
+.sumario { break-after: page; }
+.sumario h2 { font-size: 18pt; color: var(--azul-escuro); border-bottom: 3px solid var(--verde); padding-bottom: 6pt; }
+.sumario ol { columns: 2; column-gap: 12mm; padding-left: 16pt; }
+.sumario li { break-inside: avoid; margin-bottom: 3pt; }
+.sumario li ol { columns: 1; margin-top: 2pt; font-size: 9.5pt; color: var(--cinza); }
+
+/* Quadros */
+.dica, .atencao, .importante, .exemplo { border-left: 4px solid; border-radius: 4px; padding: 6pt 9pt; margin: 8pt 0; break-inside: avoid; }
+.dica { background: var(--verde-claro); border-color: var(--verde); }
+.atencao { background: var(--alerta); border-color: var(--alerta-borda); }
+.importante { background: var(--perigo); border-color: var(--perigo-borda); }
+.exemplo { background: var(--azul-claro); border-color: var(--azul); }
+.dica::before { content: "Dica  "; font-weight: 700; color: var(--verde); }
+.atencao::before { content: "Atenção  "; font-weight: 700; color: #B36B00; }
+.importante::before { content: "Importante  "; font-weight: 700; color: var(--perigo-borda); }
+.exemplo::before { content: "Exemplo  "; font-weight: 700; color: var(--azul); }
+
+/* Tabelas */
+table { width: 100%; border-collapse: collapse; margin: 6pt 0 10pt; font-size: 9.5pt; break-inside: avoid; }
+th { background: var(--azul); color: #fff; text-align: left; padding: 4pt 6pt; font-weight: 600; }
+td { border-bottom: 1px solid var(--borda); padding: 4pt 6pt; vertical-align: top; }
+tr { break-inside: avoid; }
+tr:nth-child(even) td { background: #F7F9FC; }
+
+/* Passo a passo */
+ol.passos { counter-reset: passo; list-style: none; padding-left: 0; }
+ol.passos > li { counter-increment: passo; position: relative; padding-left: 24pt; margin-bottom: 5pt; break-inside: avoid; }
+ol.passos > li::before { content: counter(passo); position: absolute; left: 0; top: 0; width: 16pt; height: 16pt; border-radius: 50%; background: var(--verde); color: #fff; font-weight: 700; font-size: 9pt; text-align: center; line-height: 16pt; }
+
+/* Caminho de menu e botões */
+.menu { font-weight: 600; color: var(--azul-escuro); background: var(--azul-claro); padding: 0 4pt; border-radius: 3px; white-space: nowrap; }
+.botao { font-weight: 600; color: #fff; background: var(--azul); padding: 0 5pt; border-radius: 3px; white-space: nowrap; font-size: 9.5pt; }
+.status { font-weight: 600; color: var(--verde); background: var(--verde-claro); padding: 0 4pt; border-radius: 3px; white-space: nowrap; font-size: 9.5pt; }
+
+/* Figuras */
+figure { margin: 8pt 0 12pt; text-align: center; break-inside: avoid; }
+figure img { max-width: 100%; max-height: 120mm; border: 1px solid var(--borda); border-radius: 6px; }
+figcaption { color: var(--cinza); font-size: 9pt; margin-top: 3pt; }
+
+/* Fluxo */
+.fluxo { display: flex; flex-wrap: wrap; align-items: center; gap: 4pt; margin: 6pt 0 10pt; font-size: 9pt; }
+.fluxo span { background: var(--azul-claro); border: 1px solid var(--azul); color: var(--azul-escuro); padding: 2pt 6pt; border-radius: 10pt; font-weight: 600; }
+.fluxo i { color: var(--cinza); font-style: normal; }
+
+.secao-intro { color: var(--cinza); font-size: 11pt; margin-bottom: 10pt; }
+.rodape-doc { margin-top: 20pt; color: var(--cinza); font-size: 9pt; border-top: 1px solid var(--borda); padding-top: 6pt; }

@@ -2,8 +2,8 @@
 
 // Home do site ViaMob360 — layout de documentacao/site_principal.png com as
 // seções e textos do wireframe (ViaMob360_Wireframe_Site.html). Sem área de
-// prefeitura (decisão do dono, 06/10/2026: tudo da prefeitura é no painel);
-// no lugar do bloco "Para prefeituras" fica o do motorista parceiro, ao lado
+// operadora (decisão do dono, 06/10/2026: tudo da operadora é no painel);
+// no lugar do bloco "Para operadoras" fica o do motorista parceiro, ao lado
 // do Chat com a Central. Conteúdo editável no painel → Site público.
 import { useEffect, useState } from "react";
 import {
@@ -16,6 +16,7 @@ import { useFormularios } from "@/components/forms/Formularios";
 import { Lojas } from "@/components/public/Footer";
 import { getAllOnce } from "@/lib/firebase/gen";
 import { linkSecao } from "@/lib/util";
+import PlanosMotorista, { textosMotorista, usePlanoDaCidade } from "@/components/paginas/PlanosMotorista";
 
 const ICONES_CHIPS = [Users, Leaf, Sparkles, ShieldCheck];
 const ICONES_INDICADORES = [CarFront, Users, UserRound, Landmark];
@@ -43,7 +44,7 @@ function SeletorCidade() {
   );
 }
 
-// Categorias ativas do município escolhido (tarifas e zonas do painel).
+// Categorias ativas da operação escolhida (tarifas e zonas do painel).
 function useCategorias() {
   const { cidade } = useCidades();
   const [nomes, setNomes] = useState<string[]>(CATEGORIAS_BASE);
@@ -64,6 +65,8 @@ function useCategorias() {
 export default function Home() {
   const c = useConfiguracao();
   const perguntas = usePerguntas();
+  const plano = usePlanoDaCidade();
+  const txMotorista = textosMotorista(plano);
   const { cidades, cidade, escolherCidade } = useCidades();
   const { abrir } = useChat();
   const formularios = useFormularios();
@@ -79,7 +82,7 @@ export default function Home() {
   const cards = [
     { icone: UserRound, cor: "azul", titulo: "Para Passageiros", texto: "Viagens práticas, seguras e com mais oportunidades na sua cidade.", acao: () => (location.hash = "passageiros") },
     { icone: Car, cor: "verde", titulo: "Para Motoristas Parceiros", texto: "Mais ganhos, flexibilidade e apoio para o seu dia a dia.", acao: () => (location.hash = "motoristas") },
-    { icone: MapPin, cor: "roxo", titulo: "Cidades atendidas", texto: "Uma plataforma multi-cidade, com regras e categorias de cada município.", acao: () => (location.hash = "cidades") },
+    { icone: MapPin, cor: "roxo", titulo: "Cidades atendidas", texto: "Uma plataforma multi-cidade, com regras e categorias de cada operação.", acao: () => (location.hash = "cidades") },
     { icone: Building2, cor: "azul", titulo: "Empresas", texto: "Soluções corporativas de mobilidade para equipes e colaboradores.", acao: () => (location.hash = "empresas") },
     { icone: ShieldCheck, cor: "verde", titulo: "Segurança", texto: "Tecnologia e monitoramento para uma viagem mais segura para todos.", acao: () => (location.hash = "seguranca") },
     { icone: HeartHandshake, cor: "laranja", titulo: "Benefícios e Parceiros", texto: "Descontos, combustível, vantagens e uma rede de parceiros que move você.", acao: () => (location.hash = "beneficios") },
@@ -147,18 +150,21 @@ export default function Home() {
         <div className="bloco-texto">
           <span className="tag">Para motoristas parceiros</span>
           <h2>Seu trabalho, com ganhos transparentes.</h2>
-          <p>Taxa reduzida, valor da corrida e repasse sempre claros, flexibilidade para ficar online quando quiser e benefícios de parceiros.</p>
+          <p>{txMotorista.resumo} Flexibilidade para ficar online quando quiser e benefícios de parceiros.</p>
           <div className="checks">
-            {["Pré-cadastro, análise e ativação pelo app.", "Ofertas com valor e distância antes de aceitar.", "Repasse via Pix e extrato da carteira.", "Suporte dedicado na Central 24h."].map((t) => (
+            {txMotorista.checks.map((t) => (
               <div className="check" key={t}><span className="dot">✓</span><span>{t}</span></div>
             ))}
           </div>
-          <button type="button" className="btn btn-green" onClick={() => formularios.abrir("motorista")}>Quero ser parceiro <ArrowRight size={18} /></button>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <button type="button" className="btn btn-green" onClick={() => formularios.abrir("motorista")}>Quero ser parceiro <ArrowRight size={18} /></button>
+            <button type="button" className="btn btn-outline" onClick={() => (location.hash = "planos")}>Como você ganha</button>
+          </div>
         </div>
         <div className="painel-motorista" aria-label="Exemplo do app do motorista">
           <div className="pm-lado">
             <div className="pm-marca">ViaMob360<small>App do Motorista</small></div>
-            {["Início", "Ofertas", "Ganhos", "Carteira", "Benefícios", "Ajuda"].map((t, i) => <span key={t} className={i === 2 ? "ativo" : undefined}>{t}</span>)}
+            {["Início", "Ofertas", "Ganhos", plano.banco ? "Minha conta" : "Carteira", plano.regras.assinatura ? "Assinatura" : "Benefícios", "Ajuda"].map((t, i) => <span key={t} className={i === 2 ? "ativo" : undefined}>{t}</span>)}
           </div>
           <div className="pm-conteudo">
             <div className="pm-topo"><b>Ganhos de hoje</b><span className="pm-online">● Você está online</span></div>
@@ -182,6 +188,9 @@ export default function Home() {
         <ChatPainel />
       </section>
 
+      {/* ── Como você ganha (modelo comercial da cidade) ─────────────── */}
+      <PlanosMotorista />
+
       {/* ── Como funciona (wireframe) ─────────────────────────────────── */}
       <section className="section soft" id="como-funciona">
         <div className="container">
@@ -198,7 +207,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Passageiros: categorias do município ───────────────────────── */}
+      {/* ── Passageiros: categorias da operação ───────────────────────── */}
       <section className="section" id="passageiros">
         <div className="container two-col">
           <div>
@@ -206,14 +215,14 @@ export default function Home() {
             <h2 className="h2-grande">Preço claro, segurança e mobilidade acessível.</h2>
             <p className="texto-mut">Veja a estimativa antes de pedir, escolha a categoria e pague como preferir: Pix, cartão, carteira digital, créditos corporativos ou vouchers.</p>
             <div className="checks">
-              {["Estimativa de preço e tempo de chegada.", "Tarifa com teto definido pelo município.", "PIN de embarque e compartilhamento de rota.", "Histórico e comprovantes no app."].map((t) => (
+              {["Estimativa de preço e tempo de chegada.", "Tarifa com teto definido pela operação.", "PIN de embarque e compartilhamento de rota.", "Histórico e comprovantes no app."].map((t) => (
                 <div className="check" key={t}><span className="dot">✓</span><span>{t}</span></div>
               ))}
             </div>
             <a className="btn btn-primary" href={app}>Quero viajar <ArrowRight size={18} /></a>
           </div>
           <div className="panel">
-            <div className="panel-head"><b>Categorias{cidade ? ` em ${cidade.nome}` : ""}</b><div className="panel-sub">Disponibilidade e regras variam conforme o município</div></div>
+            <div className="panel-head"><b>Categorias{cidade ? ` em ${cidade.nome}` : ""}</b><div className="panel-sub">Disponibilidade e regras variam conforme a operação</div></div>
             <div className="panel-body categorias">
               {categorias.map((n) => <span key={n} className="categoria"><CarFront size={18} />{n}</span>)}
             </div>
@@ -268,7 +277,7 @@ export default function Home() {
         <div className="container">
           <div className="section-head">
             <div><div className="eyebrow">Multi-cidade</div><h2>Cidades atendidas.</h2></div>
-            <p>Uma plataforma para diferentes municípios. Categorias, tarifas e regras seguem cada cidade.</p>
+            <p>Uma plataforma para diferentes operações. Categorias, tarifas e regras seguem cada cidade.</p>
           </div>
           <div className="cidades">
             {cidades.map((x) => (

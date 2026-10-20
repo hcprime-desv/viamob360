@@ -1,7 +1,7 @@
 "use client";
 
 // Cabeçalho (site_principal.png): logo, menu por público, busca na Ajuda e
-// "Baixar App". Sem área de prefeitura (tudo da prefeitura é no painel).
+// "Baixar App". Sem área de operadora (tudo da operadora é no painel).
 // Páginas do painel com local "menu" entram no fim do menu.
 import Link from "next/link";
 import { useState } from "react";

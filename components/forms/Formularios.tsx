@@ -20,9 +20,9 @@ export const useFormularios = () => {
 };
 
 const TITULOS: Record<TipoFormulario, { titulo: string; sub: string }> = {
-  motorista: { titulo: "Quero ser Motorista Parceiro", sub: "Faça o pré-cadastro. A equipe entra em contato com os requisitos do seu município; o cadastro completo é feito no app." },
+  motorista: { titulo: "Quero ser Motorista Parceiro", sub: "Faça o pré-cadastro. A equipe entra em contato com os requisitos do sua operação; o cadastro completo é feito no app." },
   empresa: { titulo: "ViaMob Empresas", sub: "Conta corporativa com centros de custo, regras de uso, colaboradores e faturamento consolidado." },
-  contato: { titulo: "Fale com a gente", sub: "Dúvidas, sugestões, imprensa ou prefeituras. Para atendimento imediato, use o Chat com a Central." },
+  contato: { titulo: "Fale com a gente", sub: "Dúvidas, sugestões, imprensa ou quem quer operar a plataforma. Para atendimento imediato, use o Chat com a Central." },
 };
 
 export function FormulariosProvider({ children }: { children: React.ReactNode }) {
@@ -38,7 +38,7 @@ export function FormulariosProvider({ children }: { children: React.ReactNode })
 
 function JanelaFormulario({ tipo, fechar }: { tipo: TipoFormulario; fechar: () => void }) {
   const { cidade } = useCidades();
-  const [d, setD] = useState<DadosLead>({ ...LEAD_VAZIO, municipio: cidade?.nome ?? "", uf: cidade?.uf ?? "", assunto: tipo === "contato" ? ASSUNTOS_CONTATO[0] : "" });
+  const [d, setD] = useState<DadosLead>({ ...LEAD_VAZIO, cidade: cidade?.nome ?? "", uf: cidade?.uf ?? "", assunto: tipo === "contato" ? ASSUNTOS_CONTATO[0] : "" });
   const [erros, setErros] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState(false);
   const [protocolo, setProtocolo] = useState<string | null>(null);
@@ -90,7 +90,7 @@ function JanelaFormulario({ tipo, fechar }: { tipo: TipoFormulario; fechar: () =
               {tipo === "empresa" && campo("cnpj", "CNPJ", { mascara: "cnpj" })}
               {campo("telefone", "Celular", { mascara: "telefone", placeholder: "(92) 99999-9999" })}
               {campo("email", "E-mail", { tipo: "email", largo: tipo !== "motorista" })}
-              {campo("municipio", "Município", { obrigatorio: tipo === "motorista" })}
+              {campo("cidade", "Cidade", { obrigatorio: tipo === "motorista" })}
               {campo("uf", "UF", { mascara: "uf", placeholder: "AM" })}
               {tipo === "motorista" && campo("veiculo", "Veículo (modelo e ano)", { largo: true, placeholder: "Ex.: Onix 2021" })}
               {tipo === "empresa" && campo("colaboradores_estimados", "Colaboradores (estimativa)", { tipo: "number" })}

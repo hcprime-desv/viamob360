@@ -1,7 +1,7 @@
 // Leitura pública do site ViaMob360 — o que o painel (módulo Site) grava em
 // dados/{tenant}/<colecao>. Só conteúdo público: configuracoes_site,
 // paginas_site, avisos_site, perguntas_frequentes e o cadastro dos
-// municípios. NUNCA ler passageiros, motoristas, corridas ou dados pessoais.
+// operações. NUNCA ler passageiros, motoristas, corridas ou dados pessoais.
 //
 // Tempo real (padrão portal181/PetHub):
 // - `listarX` / `buscarX` — leitura pontual no servidor Node a cada acesso
@@ -46,20 +46,20 @@ export const CONFIGURACAO_BASE: Configuracao = {
   nomeSite: "ViaMob360", slogan: "Mobilidade que aproxima", logoUrl: null, logoRodapeUrl: null, faviconUrl: null,
   corPrimaria: "#075fd7", corDestaque: "#07a958",
   heroChamada: "Plataforma de mobilidade urbana", heroTitulo: "Mobilidade que", heroTituloDestaque: "aproxima pessoas e cidades.",
-  heroTexto: "A ViaMob360 conecta passageiros, motoristas parceiros, empresas e prefeituras em um ecossistema de mobilidade mais seguro, justo, inteligente e eficiente.",
+  heroTexto: "A ViaMob360 conecta passageiros, motoristas parceiros, empresas e operadoras em um ecossistema de mobilidade mais seguro, justo, inteligente e eficiente.",
   heroImagemUrl: null, ctaPassageiroTexto: "Baixar App para Passageiros", ctaMotoristaTexto: "Seja Motorista Parceiro",
   chips: ["Mais mobilidade para todos", "Cidades mais sustentáveis", "Tecnologia a serviço da cidade", "Transporte mais seguro"],
   indicadores: [
     { valor: "24h", texto: "Central de atendimento e segurança" },
     { valor: "+ renda", texto: "Modelo pensado para o motorista parceiro" },
     { valor: "PIN + SOS", texto: "Segurança antes, durante e depois da viagem" },
-    { valor: "Multi-cidade", texto: "Uma plataforma para diferentes municípios" },
+    { valor: "Multi-cidade", texto: "Uma plataforma para diferentes operações" },
   ],
   motorista: { ganhosHoje: "R$ 132,40", corridas: "8", horasOnline: "4h20min", repasse: "D+1" },
   appStoreUrl: null, googlePlayUrl: null, email: "", telefone: "", endereco: "", redes: [],
   textoRodape: "Mobilidade que aproxima pessoas, oportunidades e cidades.", copyright: "ViaMob360 • P2P Corp",
   seoTitulo: "ViaMob360 | Mobilidade que aproxima",
-  seoDescricao: "Mobilidade urbana inteligente para passageiros, motoristas parceiros, empresas e prefeituras.",
+  seoDescricao: "Mobilidade urbana inteligente para passageiros, motoristas parceiros, empresas e operadoras.",
   chatTitulo: "Chat com a Central", chatSaudacao: "Olá! 👋 Sou a Central ViaMob360. Como podemos ajudar?",
   chatAssuntos: ["Informações sobre uma corrida", "Segurança / emergência", "Cadastro de motorista parceiro", "Pagamentos e carteira", "Objetos perdidos", "Outros assuntos"],
   chatPerguntaNome: "Para iniciar o atendimento, qual é o seu nome?",
@@ -132,14 +132,22 @@ const mapearAvisos = (docs: any[]): Aviso[] => {
 export const listarAvisosAtivos = async () => mapearAvisos(await getAllOnce("avisos_site"));
 export const subscribeAvisosAtivos = (cb: (a: Aviso[]) => void) => subscrever("avisos_site", mapearAvisos, cb);
 
-// ── Cidades (multi-município) ────────────────────────────────────────────
-// Municípios VIAMOB360 da coleção raiz `cliente` + o cadastro de cada um
-// (`municipios`: nome e UF). Se a raiz não puder ser lida (regras), fica só
-// o município do próprio tenant do site.
-async function municipioDoTenant(path: string): Promise<Cidade | null> {
+// ── Cidades (multi-operação) ────────────────────────────────────────────
+// Operações VIAMOB360 da coleção raiz `cliente` + o cadastro de cada um
+// (`operacoes`: nome e UF). Se a raiz não puder ser lida (regras), fica só
+// a operação do próprio tenant do site.
+async function operacaoDoTenant(path: string): Promise<Cidade | null> {
   try {
-    const m = (await getAllOnce("municipios", path)).find((x) => x.status !== "inativo");
-    return m ? { path, nome: txt(m.nome, path), uf: txt(m.uf) } : null;
+    const m = (await getAllOnce("operacoes", path)).find((x) => x.status !== "inativo");
+    if (!m) return null;
+    const r = m.remuneracao ?? {};
+    // Só o que é público do modelo comercial (sem dados internos).
+    const remuneracao = {
+      modelo: r.modelo ?? null, recebimento: r.recebimento ?? null, pagamento_antecipado: r.pagamento_antecipado ?? null, taxa_operacional: r.taxa_operacional ?? null,
+      valor_mensal_centavos: r.valor_mensal_centavos ?? null, valores_por_categoria_centavos: r.valores_por_categoria_centavos ?? {},
+      franquia_corridas: r.franquia_corridas ?? null, pacote_extra_corridas: r.pacote_extra_corridas ?? null, pacote_extra_centavos: r.pacote_extra_centavos ?? null,
+    };
+    return { path, nome: txt(m.nome, path), uf: txt(m.uf), remuneracao, bancoMotorista: !!m.banco_motorista?.habilitado };
   } catch {
     return null;
   }
@@ -152,6 +160,6 @@ export async function listarCidades(): Promise<Cidade[]> {
     paths = [];
   }
   if (TENANT_PATH && !paths.includes(TENANT_PATH)) paths.unshift(TENANT_PATH);
-  const cidades = (await Promise.all(paths.map(municipioDoTenant))).filter((c): c is Cidade => !!c);
+  const cidades = (await Promise.all(paths.map(operacaoDoTenant))).filter((c): c is Cidade => !!c);
   return cidades.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }

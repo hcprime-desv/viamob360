@@ -6,16 +6,16 @@
 // Regra desta pasta: TS puro, sem import de fora dela — o app reaproveita
 // os mesmos arquivos (npm run sync:app).
 //
-// Tenant = MUNICÍPIO: cada prefeitura é um `cliente` (sistema "VIAMOB360") com
+// Tenant = OPERAÇÃO: cada operadora é um `cliente` (sistema "VIAMOB360") com
 // o seu `path`, e todos os dados ficam em /dados/{path}/{colecao}/{id}. Por
 // isso as coleções NÃO repetem `id_municipios` (a doc pede o campo para
-// segregar; o caminho já segrega) — só `municipios` guarda o cadastro e a
-// identidade visual do próprio município.
+// segregar; o caminho já segrega) — só `operacoes` guarda o cadastro e a
+// identidade visual da própria operação.
 
 // Registros imutáveis (livro-razão / log / trilha): só created_at, nunca
 // updated_at. Correção se faz com um novo registro.
 export const LISTA_COLECOES_IMUTAVEIS = [
-  "logs_auditoria", "eventos_corrida", "pontos_gps_corrida", "acoes_incidente", "mensagens_chamado",
+  "logs_auditoria", "eventos_corrida", "pontos_gps_corrida", "acoes_incidente", "mensagens_chamado", "lancamentos_contas",
 ] as const;
 
 export const ehColecaoImutavel = (colecao: string) => (LISTA_COLECOES_IMUTAVEIS as readonly string[]).includes(colecao);
@@ -36,7 +36,7 @@ export const ROTULOS_MODULO: Record<ModuloSistema, string> = {
   corridas: "Corridas",
   financeiro: "Financeiro",
   beneficios: "Benefícios e parceiros",
-  programas: "Programas municipais e eventos",
+  programas: "Programas da operadora e eventos",
   empresas: "Empresas (contas corporativas)",
   seguranca: "Segurança e incidentes",
   fiscalizacao: "Fiscalização",
@@ -47,13 +47,13 @@ export const ROTULOS_MODULO: Record<ModuloSistema, string> = {
 // Coleções de cada módulo — fonte única (colecoes.ts tipa a partir daqui e
 // acesso.ts usa como recursos da matriz de permissões).
 export const MODULOS_COLECOES = {
-  nucleo: ["municipios", "usuarios", "perfis", "permissoes", "configuracoes", "notificacoes", "anexos", "logs_auditoria", "dispositivos", "sessoes", "sincronizacoes"],
+  nucleo: ["operacoes", "usuarios", "perfis", "permissoes", "configuracoes", "notificacoes", "anexos", "logs_auditoria", "dispositivos", "sessoes", "sincronizacoes"],
   pessoas_veiculos: ["passageiros", "enderecos_passageiros", "motoristas", "veiculos", "documentos_motoristas", "documentos_veiculos", "vistorias_veiculos"],
   tarifas: ["categorias_servico", "tarifas", "zonas_tarifarias", "regras_tarifarias"],
   corridas: ["solicitacoes_corridas", "ofertas_corridas", "corridas", "eventos_corrida", "rotas_corridas", "pontos_gps_corrida", "cancelamentos_corrida", "avaliacoes", "localizacoes_motoristas", "localizacoes_passageiros"],
-  financeiro: ["pagamentos", "carteiras", "transacoes", "repasses", "cupons", "vouchers", "cartoes_passageiros"],
+  financeiro: ["pagamentos", "carteiras", "transacoes", "repasses", "cupons", "vouchers", "cartoes_passageiros", "assinaturas_motoristas", "contas_motoristas", "lancamentos_contas"],
   beneficios: ["beneficios", "parceiros_beneficios", "beneficios_parceiros"],
-  programas: ["programas_mobilidade", "beneficiarios_programas", "eventos_municipais"],
+  programas: ["programas_mobilidade", "beneficiarios_programas", "eventos_locais"],
   empresas: ["empresas", "usuarios_empresas", "centros_custo", "politicas_empresas"],
   seguranca: ["incidentes", "alertas_seguranca", "acoes_incidente"],
   fiscalizacao: ["fiscalizacoes"],

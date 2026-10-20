@@ -71,4 +71,7 @@ export type Pergunta = {
   ordem: number;
 };
 
-export type Cidade = { path: string; nome: string; uf: string };
+// `remuneracao` = operacoes.remuneracao (modelo comercial — o que é PÚBLICO:
+// modelo, mensalidade, franquia, recebedor); `bancoMotorista` = conta digital
+// liberada pela operadora. Regras em lib/compartilhado/remuneracao.ts.
+export type Cidade = { path: string; nome: string; uf: string; remuneracao?: Record<string, any> | null; bancoMotorista?: boolean };

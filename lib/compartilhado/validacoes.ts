@@ -76,6 +76,49 @@ export const horaValida = (valor: any) => /^([01]\d|2[0-3]):[0-5]\d$/.test(Strin
 // Placa antiga (ABC1234) ou Mercosul (ABC1D23).
 export const placaValida = (valor: any) => /^[A-Z]{3}\d[A-Z0-9]\d{2}$/.test(String(valor ?? "").toUpperCase().replace(/[^A-Z0-9]/g, ""));
 
+// CNH (número de registro, 11 dígitos) com os dois dígitos verificadores do
+// Denatran.
+export function cnhValida(valor: any): boolean {
+  const c = soDigitos(valor);
+  if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+  let soma = 0;
+  for (let i = 0, j = 9; i < 9; i++, j--) soma += Number(c[i]) * j;
+  let dv1 = soma % 11;
+  let desconto = 0;
+  if (dv1 >= 10) { dv1 = 0; desconto = 2; }
+  soma = 0;
+  for (let i = 0, j = 1; i < 9; i++, j++) soma += Number(c[i]) * j;
+  const resto = soma % 11;
+  const dv2 = resto >= 10 ? 0 : resto - desconto;
+  return dv1 === Number(c[9]) && dv2 === Number(c[10]);
+}
+
+// RENAVAM (11 dígitos; os antigos de 9 recebem zeros à esquerda) com o
+// dígito verificador.
+export function renavamValido(valor: any): boolean {
+  let r = soDigitos(valor);
+  if (r.length === 9) r = r.padStart(11, "0");
+  if (r.length !== 11 || /^(\d)\1{10}$/.test(r)) return false;
+  const pesos = [3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+  const soma = pesos.reduce((t, p, i) => t + Number(r[i]) * p, 0);
+  const dv = (soma * 10) % 11;
+  return (dv === 10 ? 0 : dv) === Number(r[10]);
+}
+
+// Chave Pix conforme o tipo (cpf, cnpj, email, telefone, aleatoria = UUID).
+export function chavePixValida(tipo: string | null | undefined, chave: any): boolean {
+  const v = String(chave ?? "").trim();
+  if (!v) return false;
+  switch (tipo) {
+    case "cpf": return cpfValido(v);
+    case "cnpj": return cnpjValido(v);
+    case "email": return emailValido(v);
+    case "telefone": return telefoneValido(v.replace(/^\+?55(?=\d{10,11}$)/, ""));
+    case "aleatoria": return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+    default: return false;
+  }
+}
+
 // "DD/MM/AAAA" (e opcional "HH:mm") → Date real (31/02 é recusado); null se
 // inválida. É o que os formulários do app digitam; no banco vai como Date
 // (o Firestore grava Timestamp) — padrão de dados do projeto.
@@ -124,7 +167,7 @@ export function mascararHora(valor: any): string {
 }
 
 // ── porta única ──────────────────────────────────────────────────────────
-export type TipoCampo = "cpf" | "cnpj" | "documento" | "telefone" | "celular" | "email" | "cep" | "uf" | "hora" | "data" | "placa";
+export type TipoCampo = "cpf" | "cnpj" | "documento" | "telefone" | "celular" | "email" | "cep" | "uf" | "hora" | "data" | "placa" | "cnh" | "renavam";
 
 const REGRAS: Record<TipoCampo, { valido: (v: any) => boolean; mensagem: string }> = {
   cpf: { valido: cpfValido, mensagem: "CPF inválido." },
@@ -138,6 +181,8 @@ const REGRAS: Record<TipoCampo, { valido: (v: any) => boolean; mensagem: string 
   hora: { valido: horaValida, mensagem: "Hora inválida — use HH:mm." },
   data: { valido: dataValida, mensagem: "Data inválida — use DD/MM/AAAA." },
   placa: { valido: placaValida, mensagem: "Placa inválida." },
+  cnh: { valido: cnhValida, mensagem: "Número da CNH inválido (11 dígitos — confira no documento)." },
+  renavam: { valido: renavamValido, mensagem: "RENAVAM inválido (11 dígitos — está no CRLV)." },
 };
 
 // Mensagem do problema, ou null se o valor é válido. Vazio só é problema com
@@ -169,6 +214,7 @@ export function mascarar(tipo: TipoCampo, valor: any): string {
     case "hora": return mascararHora(valor);
     case "uf": return String(valor ?? "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2);
     case "placa": return String(valor ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
+    case "cnh": case "renavam": return soDigitos(valor).slice(0, 11);
     default: return String(valor ?? "");
   }
 }
