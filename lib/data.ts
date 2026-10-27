@@ -146,6 +146,10 @@ async function operacaoDoTenant(path: string): Promise<Cidade | null> {
       modelo: r.modelo ?? null, recebimento: r.recebimento ?? null, pagamento_antecipado: r.pagamento_antecipado ?? null, taxa_operacional: r.taxa_operacional ?? null,
       valor_mensal_centavos: r.valor_mensal_centavos ?? null, valores_por_categoria_centavos: r.valores_por_categoria_centavos ?? {},
       franquia_corridas: r.franquia_corridas ?? null, pacote_extra_corridas: r.pacote_extra_corridas ?? null, pacote_extra_centavos: r.pacote_extra_centavos ?? null,
+      // planos que o motorista escolhe (mensal, semanal, diário — 27/10/2026)
+      plano_mensal: r.plano_mensal ?? null, plano_semanal: r.plano_semanal ?? null, plano_diario: r.plano_diario ?? null,
+      valor_semanal_centavos: r.valor_semanal_centavos ?? null, franquia_semanal_corridas: r.franquia_semanal_corridas ?? null,
+      valor_diario_centavos: r.valor_diario_centavos ?? null, franquia_diaria_corridas: r.franquia_diaria_corridas ?? null,
     };
     return { path, nome: txt(m.nome, path), uf: txt(m.uf), remuneracao, bancoMotorista: !!m.banco_motorista?.habilitado };
   } catch {

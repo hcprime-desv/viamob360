@@ -8,7 +8,7 @@
 import { ArrowRight, BadgePercent, Banknote, CalendarCheck, Landmark, Layers, Sparkles, Wallet } from "lucide-react";
 import { useCidades } from "@/components/public/AoVivo";
 import { useFormularios } from "@/components/forms/Formularios";
-import { configRemuneracao, regrasComerciais } from "@/lib/compartilhado/remuneracao";
+import { configRemuneracao, detalhePlano, planosHabilitados, regrasComerciais } from "@/lib/compartilhado/remuneracao";
 
 const brl = (c: number) => (Number(c) / 100 || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -18,15 +18,24 @@ export function usePlanoDaCidade() {
   const regras = regrasComerciais(cfg);
   const valores = [cfg.valorMensalCentavos, ...Object.values(cfg.valoresPorCategoria)].filter((v) => v > 0);
   const aPartirDe = valores.length ? Math.min(...valores) : cfg.valorMensalCentavos;
-  return { cidade, cfg, regras, aPartirDe, porCategoria: Object.keys(cfg.valoresPorCategoria).length > 0, banco: !!cidade?.bancoMotorista };
+  // planos que o motorista escolhe no app (mensal, semanal = passe de 7 dias, diário = passe de 24 h)
+  const planos = planosHabilitados(cfg).map((p) => ({ ...detalhePlano(cfg, p, null), valorCentavos: p === "mensal" ? aPartirDe : detalhePlano(cfg, p).valorCentavos }));
+  return { cidade, cfg, regras, aPartirDe, planos, porCategoria: Object.keys(cfg.valoresPorCategoria).length > 0, banco: !!cidade?.bancoMotorista };
 }
+const SUFIXO = { mensal: "/mês", semanal: "/semana", diario: "/dia" } as const;
+const NOME = { mensal: "Mensal", semanal: "Semanal", diario: "Diário" } as const;
+/** "Mensal R$ 99/mês · Semanal R$ 35/semana · Diário R$ 8/dia" */
+export const textoPlanos = (planos: ReturnType<typeof usePlanoDaCidade>["planos"], porCategoria = false) =>
+  planos.map((p) => `${NOME[p.plano]} ${p.plano === "mensal" && porCategoria ? "a partir de " : ""}${brl(p.valorCentavos)}${SUFIXO[p.plano]}${p.corridas ? ` (${p.corridas} corridas)` : ""}`).join(" · ");
 
 // Frases do bloco "Para motoristas parceiros" conforme a cidade.
 export function textosMotorista(p: ReturnType<typeof usePlanoDaCidade>) {
-  const { regras, cfg, aPartirDe, banco } = p;
+  const { regras, cfg, aPartirDe, banco, planos } = p;
   const resumo = regras.modelo === "percentual"
     ? "Sem mensalidade: a plataforma fica com um percentual de cada corrida — e você vê quanto vai receber antes de aceitar."
-    : regras.franquia
+    : planos.length > 1
+      ? `Assinatura do seu jeito — ${textoPlanos(planos)} — e 100% do valor de cada corrida é seu.`
+      : regras.franquia
       ? `Mensalidade de ${brl(aPartirDe)} com ${cfg.franquiaCorridas} corridas incluídas no mês — e 100% do valor de cada corrida é seu.`
       : `Mensalidade fixa de ${brl(aPartirDe)} — e 100% do valor de cada corrida é seu.`;
   const checks = [
@@ -40,13 +49,16 @@ export function textosMotorista(p: ReturnType<typeof usePlanoDaCidade>) {
 
 export default function PlanosMotorista() {
   const plano = usePlanoDaCidade();
-  const { cidade, cfg, regras, aPartirDe, porCategoria, banco } = plano;
+  const { cidade, cfg, regras, aPartirDe, porCategoria, banco, planos } = plano;
   const formularios = useFormularios();
   const nomeCidade = cidade?.nome ?? "sua cidade";
 
+  const extra = regras.franquia ? ` Acabaram as corridas incluídas? Compre um pacote extra de ${cfg.pacoteExtraCorridas} corridas por ${brl(cfg.pacoteExtraCentavos)} direto no app.` : "";
   const planoCard = regras.modelo === "percentual"
     ? { icone: BadgePercent, titulo: "Percentual por corrida", destaque: "Sem mensalidade", texto: "A plataforma fica com um percentual de cada corrida. O valor que você vai receber aparece na oferta, antes de aceitar." }
-    : regras.franquia
+    : planos.length > 1
+      ? { icone: CalendarCheck, titulo: regras.franquia ? "Assinatura + franquia, do seu jeito" : "Assinatura do seu jeito", destaque: textoPlanos(planos, porCategoria), texto: `Escolha no app: mensal, ou passe semanal (7 dias) e diário (24 horas) pagos antes, para quem roda só alguns dias. 100% do valor das corridas é seu.${extra}` }
+      : regras.franquia
       ? { icone: Layers, titulo: "Assinatura + franquia", destaque: `${porCategoria ? "a partir de " : ""}${brl(aPartirDe)}/mês`, texto: `Inclui ${cfg.franquiaCorridas} corridas no mês. Acabou antes da renovação? Compre um pacote extra de ${cfg.pacoteExtraCorridas} corridas por ${brl(cfg.pacoteExtraCentavos)} direto no app.` }
       : { icone: CalendarCheck, titulo: "Assinatura mensal", destaque: `${porCategoria ? "a partir de " : ""}${brl(aPartirDe)}/mês`, texto: "Valor fixo por mês e 100% do valor das corridas é seu — sem percentual por viagem." };
   const recebeCard = regras.recebedor === "motorista"

@@ -26,7 +26,23 @@
 //   cobrados antes da busca). No WhatsApp o pagamento é sempre antes (Pix; no
 //   percentual também cartão por LINK).
 //   Taxa operacional por corrida: o operador escolhe (sim/não); nunca no direto.
+//
+//   PLANOS DA ASSINATURA (dono, 27/10/2026): a operadora liga quais oferece —
+//   "mensal" (mensalidade gerada no mês, vencimento e carência, como sempre),
+//   "semanal" e "diario" (PASSE pago antes pelo app, Pix: vale 7 dias ou 24 h a
+//   partir do pagamento; comprar outro antes do fim emenda no atual). Cada
+//   plano tem o seu preço e, no assinatura_franquia, a sua franquia de corridas
+//   (no passe, contam as corridas dentro da validade). O MOTORISTA escolhe o
+//   plano no app (`motoristas.plano_assinatura`, `planoDoMotorista`); sem passe
+//   válido no diário/semanal ele não fica online.
 import type { Escrita } from "./escritas";
+
+export const PLANOS_ASSINATURA = ["mensal", "semanal", "diario"] as const;
+export type PlanoAssinatura = (typeof PLANOS_ASSINATURA)[number];
+export const ROTULOS_PLANO_ASSINATURA: Record<PlanoAssinatura, string> = { mensal: "Mensal", semanal: "Semanal (passe de 7 dias)", diario: "Diário (passe de 24 horas)" };
+export const ROTULOS_PLANO_CURTO: Record<PlanoAssinatura, string> = { mensal: "Mensal", semanal: "Semanal", diario: "Diário" };
+export const DURACAO_PASSE_MS: Record<"semanal" | "diario", number> = { semanal: 7 * 86400000, diario: 86400000 };
+export const ehPlanoPasse = (p: string | null | undefined): p is "semanal" | "diario" => p === "semanal" || p === "diario";
 
 export const MODELOS_REMUNERACAO = ["percentual", "assinatura", "assinatura_franquia"] as const;
 export type ModeloRemuneracao = (typeof MODELOS_REMUNERACAO)[number];
@@ -64,11 +80,21 @@ export type ConfigRemuneracao = {
   franquiaCorridas: number; // corridas incluídas na mensalidade (assinatura_franquia)
   pacoteExtraCorridas: number; // corridas de cada pacote extra
   pacoteExtraCentavos: number; // preço do pacote extra
+  // Planos que o motorista pode escolher (o mensal usa os campos acima)
+  planoMensal: boolean;
+  planoSemanal: boolean;
+  valorSemanalCentavos: number;
+  franquiaSemanalCorridas: number;
+  planoDiario: boolean;
+  valorDiarioCentavos: number;
+  franquiaDiariaCorridas: number;
 };
 export const CONFIG_REMUNERACAO_PADRAO: ConfigRemuneracao = {
   modelo: "percentual", recebimento: "plataforma", pagamentoAntecipado: true, taxaOperacional: true,
   valorMensalCentavos: 9900, valoresPorCategoria: {}, diaVencimento: 10, diasCarencia: 5,
   franquiaCorridas: 60, pacoteExtraCorridas: 10, pacoteExtraCentavos: 3000,
+  planoMensal: true, planoSemanal: false, valorSemanalCentavos: 3500, franquiaSemanalCorridas: 20,
+  planoDiario: false, valorDiarioCentavos: 800, franquiaDiariaCorridas: 5,
 };
 
 const inteiro = (v: any, padrao: number, min = 0, max = Number.MAX_SAFE_INTEGER) => {
@@ -97,7 +123,34 @@ export function configRemuneracao(operacao: Record<string, any> | null | undefin
     franquiaCorridas: inteiro(r.franquia_corridas, p.franquiaCorridas, 1, 100000),
     pacoteExtraCorridas: inteiro(r.pacote_extra_corridas, p.pacoteExtraCorridas, 1, 100000),
     pacoteExtraCentavos: inteiro(r.pacote_extra_centavos, p.pacoteExtraCentavos),
+    planoMensal: booleano(r.plano_mensal, p.planoMensal),
+    planoSemanal: booleano(r.plano_semanal, p.planoSemanal),
+    valorSemanalCentavos: inteiro(r.valor_semanal_centavos, p.valorSemanalCentavos),
+    franquiaSemanalCorridas: inteiro(r.franquia_semanal_corridas, p.franquiaSemanalCorridas, 1, 100000),
+    planoDiario: booleano(r.plano_diario, p.planoDiario),
+    valorDiarioCentavos: inteiro(r.valor_diario_centavos, p.valorDiarioCentavos),
+    franquiaDiariaCorridas: inteiro(r.franquia_diaria_corridas, p.franquiaDiariaCorridas, 1, 100000),
   };
+}
+
+// ── Planos da assinatura ─────────────────────────────────────────────────
+/** Planos ligados pela operadora (nunca vazio: sem nenhum ligado vale o mensal) */
+export function planosHabilitados(cfg: ConfigRemuneracao): PlanoAssinatura[] {
+  const l = PLANOS_ASSINATURA.filter((p) => (p === "mensal" ? cfg.planoMensal : p === "semanal" ? cfg.planoSemanal : cfg.planoDiario));
+  return l.length ? l : ["mensal"];
+}
+/** Plano que vale para o motorista: o escolhido, se a operadora ainda oferece; senão o 1º ligado */
+export function planoDoMotorista(cfg: ConfigRemuneracao, motorista: Record<string, any> | null | undefined): PlanoAssinatura {
+  const l = planosHabilitados(cfg);
+  const escolhido = motorista?.plano_assinatura as PlanoAssinatura | undefined;
+  return escolhido && l.includes(escolhido) ? escolhido : l[0];
+}
+/** Preço e franquia de cada plano (o mensal aceita valor por categoria) */
+export function detalhePlano(cfg: ConfigRemuneracao, plano: PlanoAssinatura, codigoCategoria?: string | null) {
+  const franquia = cfg.modelo === "assinatura_franquia";
+  if (plano === "semanal") return { plano, valorCentavos: cfg.valorSemanalCentavos, corridas: franquia ? cfg.franquiaSemanalCorridas : null };
+  if (plano === "diario") return { plano, valorCentavos: cfg.valorDiarioCentavos, corridas: franquia ? cfg.franquiaDiariaCorridas : null };
+  return { plano, valorCentavos: valorAssinatura(cfg, codigoCategoria), corridas: franquia ? cfg.franquiaCorridas : null };
 }
 
 // ── A REGRA ÚNICA do pagamento da corrida ────────────────────────────────
@@ -185,7 +238,7 @@ const ms = (v: any): number => {
 const DIA = 86400000;
 
 export type SituacaoAssinatura = {
-  situacao: "nao_se_aplica" | "em_dia" | "a_vencer" | "vencida_carencia" | "bloqueado";
+  situacao: "nao_se_aplica" | "em_dia" | "a_vencer" | "vencida_carencia" | "bloqueado" | "sem_passe";
   // Mensalidade em aberto mais antiga (a que manda na situação).
   emAberto: Record<string, any> | null;
   diasAtraso: number;
@@ -193,19 +246,50 @@ export type SituacaoAssinatura = {
   mensagem: string;
 };
 
-export const TIPOS_ASSINATURA = ["mensalidade", "pacote_extra"] as const;
-export const ROTULOS_TIPO_ASSINATURA: Record<(typeof TIPOS_ASSINATURA)[number], string> = { mensalidade: "Mensalidade", pacote_extra: "Pacote extra de corridas" };
+export const TIPOS_ASSINATURA = ["mensalidade", "passe_semanal", "passe_diario", "pacote_extra"] as const;
+export const ROTULOS_TIPO_ASSINATURA: Record<(typeof TIPOS_ASSINATURA)[number], string> = {
+  mensalidade: "Mensalidade", passe_semanal: "Passe semanal", passe_diario: "Passe diário", pacote_extra: "Pacote extra de corridas",
+};
 export const ehMensalidade = (a: Record<string, any>) => (a?.tipo ?? "mensalidade") === "mensalidade";
+export const ehPasse = (a: Record<string, any>) => a?.tipo === "passe_semanal" || a?.tipo === "passe_diario";
+
+/** Passe PAGO que vale agora (o de validade mais longa) */
+export function passeVigente(assinaturas: any[], agora: Date = new Date()): Record<string, any> | null {
+  const t = agora.getTime();
+  return (assinaturas ?? [])
+    .filter((a) => ehPasse(a) && a.status === "paga" && ms(a.inicio_em) <= t && t < ms(a.fim_em))
+    .sort((a, b) => ms(b.fim_em) - ms(a.fim_em))[0] ?? null;
+}
+/** Fim do último passe pago (vigente ou que ainda vai começar) — o próximo emenda nele */
+export function fimDosPasses(assinaturas: any[], agora: Date = new Date()): number {
+  const fins = (assinaturas ?? []).filter((a) => ehPasse(a) && a.status === "paga").map((a) => ms(a.fim_em)).filter((x) => Number.isFinite(x));
+  return Math.max(agora.getTime(), ...fins);
+}
+export const horaCurta = (t: number) => new Date(t).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
 // Situação do motorista no modelo assinatura: a mensalidade pendente mais
 // antiga decide. Vencida há mais de `diasCarencia` dias → bloqueia ficar
 // online (como a suspensão por cancelamentos).
-export function situacaoAssinatura(p: { cfg: ConfigRemuneracao; assinaturas: any[]; agora?: Date }): SituacaoAssinatura {
+// Planos diário/semanal (`plano`): sem passe pago válido agora → bloqueia; a
+// mensalidade antiga em atraso (de quando era mensal) continua bloqueando.
+export function situacaoAssinatura(p: { cfg: ConfigRemuneracao; assinaturas: any[]; agora?: Date; plano?: PlanoAssinatura | null }): SituacaoAssinatura {
   const agora = (p.agora ?? new Date()).getTime();
   if (!ehModeloAssinatura(p.cfg.modelo)) return { situacao: "nao_se_aplica", emAberto: null, diasAtraso: 0, bloqueia: false, mensagem: "" };
-  // Pacote extra em aberto não bloqueia (só não soma corridas até ser pago).
+  // Pacote extra e passe em aberto não bloqueiam (só não valem até serem pagos).
   const abertas = (p.assinaturas ?? []).filter((a) => a.status === "pendente" && ehMensalidade(a)).sort((a, b) => ms(a.vencimento_em) - ms(b.vencimento_em));
   const a = abertas[0] ?? null;
+  if (ehPlanoPasse(p.plano)) {
+    const atraso = a && Number.isFinite(ms(a.vencimento_em)) ? Math.floor((agora - ms(a.vencimento_em)) / DIA) + 1 : 0;
+    if (a && atraso > p.cfg.diasCarencia) {
+      const reais = ((Number(a.valor_centavos) || 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      return { situacao: "bloqueado", emAberto: a, diasAtraso: atraso, bloqueia: true, mensagem: `Mensalidade de ${rotuloCompetencia(a.competencia)} (${reais}) em atraso. Pague para voltar a ficar online.` };
+    }
+    const vig = passeVigente(p.assinaturas, new Date(agora));
+    if (vig) return { situacao: "em_dia", emAberto: null, diasAtraso: 0, bloqueia: false, mensagem: `${vig.tipo === "passe_semanal" ? "Passe semanal" : "Passe diário"} válido até ${horaCurta(ms(vig.fim_em))}.` };
+    const valor = p.plano === "semanal" ? p.cfg.valorSemanalCentavos : p.cfg.valorDiarioCentavos;
+    const reais = (valor / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    return { situacao: "sem_passe", emAberto: null, diasAtraso: 0, bloqueia: true, mensagem: `Sem passe ${p.plano === "semanal" ? "semanal" : "diário"} válido. Compre o passe (${reais}) em Perfil → Minha assinatura para ficar online.` };
+  }
   if (!a) return { situacao: "em_dia", emAberto: null, diasAtraso: 0, bloqueia: false, mensagem: "Assinatura em dia." };
   const venc = ms(a.vencimento_em);
   const valor = (Number(a.valor_centavos) || 0) / 100;
@@ -228,10 +312,11 @@ export function planejarMensalidades(p: {
   cfg: ConfigRemuneracao; competencia: string; motoristas: any[]; existentes: any[]; categoriaDoMotorista: (m: any) => string | null;
 }): Escrita[] {
   if (!ehModeloAssinatura(p.cfg.modelo)) return [];
+  // só quem está no plano mensal (diário/semanal compram o passe no app)
   const ja = new Set(p.existentes.filter((a) => a.competencia === p.competencia && a.status !== "cancelada" && ehMensalidade(a)).map((a) => String(a.id_motoristas)));
   const venc = vencimentoDa(p.competencia, p.cfg);
   return p.motoristas
-    .filter((m) => m.status === "ativo" && !ja.has(String(m.id)))
+    .filter((m) => m.status === "ativo" && !ja.has(String(m.id)) && planoDoMotorista(p.cfg, m) === "mensal")
     .map((m) => ({
       tipo: "criar" as const, colecao: "assinaturas_motoristas",
       dados: {
@@ -247,10 +332,58 @@ export function planejarMensalidades(p: {
 export function planejarBaixaAssinatura(p: { assinatura: Record<string, any>; metodo: string; manual: boolean; observacao?: string | null; codigoExterno?: string | null; agora?: Date }): Escrita[] {
   if (p.assinatura.status !== "pendente") throw new Error(`Mensalidade "${p.assinatura.status}" não pode receber baixa.`);
   if (p.manual && !String(p.observacao ?? "").trim()) throw new Error("Informe a observação da baixa manual (ex.: comprovante recebido).");
+  const agora = p.agora ?? new Date();
+  // passe: vale a partir do pagamento (ou do fim do passe anterior, gravado na compra em inicio_em)
+  const validade: Record<string, any> = {};
+  if (ehPasse(p.assinatura)) {
+    const inicio = Math.max(agora.getTime(), Number.isFinite(ms(p.assinatura.inicio_em)) ? ms(p.assinatura.inicio_em) : 0);
+    validade.inicio_em = new Date(inicio);
+    validade.fim_em = new Date(inicio + DURACAO_PASSE_MS[p.assinatura.tipo === "passe_semanal" ? "semanal" : "diario"]);
+  }
   return [{
     tipo: "atualizar", colecao: "assinaturas_motoristas", id: String(p.assinatura.id),
-    dados: { status: "paga", metodo: p.metodo, pago_em: p.agora ?? new Date(), baixa_manual: p.manual, observacao: p.observacao?.trim() || p.assinatura.observacao || null, codigo_externo: p.codigoExterno ?? p.assinatura.codigo_externo ?? null },
+    dados: { status: "paga", metodo: p.metodo, pago_em: agora, baixa_manual: p.manual, observacao: p.observacao?.trim() || p.assinatura.observacao || null, codigo_externo: p.codigoExterno ?? p.assinatura.codigo_externo ?? null, ...validade },
   }];
+}
+
+// Compra do passe (diário/semanal): cobrança Pix na assinaturas_motoristas; a
+// validade só conta depois de pago (baixa). Já tendo passe pago, o novo emenda.
+export function planejarPasse(p: { cfg: ConfigRemuneracao; idMotorista: string; plano: "semanal" | "diario"; assinaturas: any[]; agora?: Date }): Escrita[] {
+  if (!ehModeloAssinatura(p.cfg.modelo)) throw new Error("A operação não está no modelo de assinatura.");
+  if (!planosHabilitados(p.cfg).includes(p.plano)) throw new Error("A operação não oferece este plano.");
+  const agora = p.agora ?? new Date();
+  const d = detalhePlano(p.cfg, p.plano);
+  return [{
+    tipo: "criar", colecao: "assinaturas_motoristas", ref: "passe",
+    dados: {
+      id_motoristas: String(p.idMotorista), competencia: competenciaDe(agora), valor_centavos: d.valorCentavos,
+      tipo: p.plano === "semanal" ? "passe_semanal" : "passe_diario", corridas_incluidas: d.corridas,
+      inicio_em: new Date(fimDosPasses(p.assinaturas, agora)), fim_em: null,
+      vencimento_em: agora, status: "pendente", metodo: null, copia_cola_pix: null, codigo_externo: null, pix_expira_em: null,
+      pago_em: null, baixa_manual: false, observacao: null,
+    },
+  }];
+}
+
+// Troca de plano pelo motorista: grava a escolha; saindo do mensal, a
+// mensalidade do mês ainda não paga é cancelada (os passes valem até o fim).
+export function planejarTrocaPlano(p: { cfg: ConfigRemuneracao; motorista: Record<string, any>; plano: PlanoAssinatura; assinaturas: any[]; agora?: Date }): Escrita[] {
+  if (!planosHabilitados(p.cfg).includes(p.plano)) throw new Error("A operação não oferece este plano.");
+  const comp = competenciaDe(p.agora ?? new Date());
+  const escritas: Escrita[] = [{ tipo: "atualizar", colecao: "motoristas", id: String(p.motorista.id), dados: { plano_assinatura: p.plano } }];
+  const doMes = (p.assinaturas ?? []).filter((a) => ehMensalidade(a) && a.competencia === comp && String(a.id_motoristas) === String(p.motorista.id));
+  if (p.plano !== "mensal") {
+    for (const a of doMes.filter((x) => x.status === "pendente")) {
+      escritas.push({ tipo: "atualizar", colecao: "assinaturas_motoristas", id: String(a.id), dados: { status: "cancelada", trocou_plano: true, observacao: `Cancelada: o motorista trocou para o plano ${ROTULOS_PLANO_CURTO[p.plano].toLowerCase()}.` } });
+    }
+  } else {
+    // voltou ao mensal no mesmo mês: a mensalidade cancelada PELA TROCA volta a valer (o id do
+    // mês é fixo — a rotina não gera outra). Exceção única à transição cancelada → (nenhuma).
+    for (const a of doMes.filter((x) => x.status === "cancelada" && x.trocou_plano === true)) {
+      escritas.push({ tipo: "atualizar", colecao: "assinaturas_motoristas", id: String(a.id), dados: { status: "pendente", trocou_plano: false, observacao: "Reativada: o motorista voltou ao plano mensal." } });
+    }
+  }
+  return escritas;
 }
 
 // Resumo para os KPIs do painel.
@@ -262,12 +395,14 @@ export function resumoAssinaturas(p: { cfg: ConfigRemuneracao; assinaturas: any[
   const atrasoDias = (a: any) => Math.floor((agora - ms(a.vencimento_em)) / DIA) + 1;
   const vencidas = pendentes.filter((a) => Number.isFinite(ms(a.vencimento_em)) && agora > ms(a.vencimento_em));
   return {
-    previstoMesCentavos: soma(doMes.filter((a) => a.status !== "isenta")),
+    previstoMesCentavos: soma(doMes.filter((a) => a.status !== "isenta" && !(ehPasse(a) && a.status === "pendente"))),
     recebidoMesCentavos: soma(doMes.filter((a) => a.status === "paga")),
     pagasMes: doMes.filter((a) => a.status === "paga").length,
     aPagarMes: doMes.filter((a) => a.status === "pendente").length,
     emCarencia: vencidas.filter((a) => atrasoDias(a) <= p.cfg.diasCarencia).length,
     bloqueados: new Set(vencidas.filter((a) => atrasoDias(a) > p.cfg.diasCarencia).map((a) => String(a.id_motoristas))).size,
+    passesVigentes: new Set(p.assinaturas.filter((a) => ehPasse(a) && a.status === "paga" && ms(a.inicio_em) <= agora && agora < ms(a.fim_em)).map((a) => String(a.id_motoristas))).size,
+    passesPagosMes: doMes.filter((a) => ehPasse(a) && a.status === "paga").length,
   };
 }
 
@@ -276,9 +411,28 @@ export function resumoAssinaturas(p: { cfg: ConfigRemuneracao; assinaturas: any[
 // competência. Usadas = corridas finalizadas pelo motorista no mês (fim_em).
 // Esgotou → não recebe novas corridas até comprar um pacote extra ou o mês virar.
 export type SituacaoFranquia = { aplica: boolean; incluidas: number; usadas: number; restantes: number; esgotada: boolean; mensagem: string };
-export function situacaoFranquia(p: { cfg: ConfigRemuneracao; assinaturas: any[]; corridas: any[]; agora?: Date }): SituacaoFranquia {
+// Planos diário/semanal: franquia do PASSE vigente + pacotes pagos durante ele;
+// usadas = corridas finalizadas dentro da validade do passe.
+export function situacaoFranquia(p: { cfg: ConfigRemuneracao; assinaturas: any[]; corridas: any[]; agora?: Date; plano?: PlanoAssinatura | null }): SituacaoFranquia {
   if (p.cfg.modelo !== "assinatura_franquia") return { aplica: false, incluidas: 0, usadas: 0, restantes: Infinity, esgotada: false, mensagem: "" };
   const agora = p.agora ?? new Date();
+  if (ehPlanoPasse(p.plano)) {
+    const vig = passeVigente(p.assinaturas, agora);
+    if (!vig) return { aplica: true, incluidas: 0, usadas: 0, restantes: 0, esgotada: true, mensagem: "Sem passe válido: compre o passe para receber corridas." };
+    const ini = ms(vig.inicio_em), fim = ms(vig.fim_em);
+    const dentro = (t: number) => t >= ini && t < fim;
+    const extras = (p.assinaturas ?? []).filter((a) => a.tipo === "pacote_extra" && a.status === "paga" && dentro(ms(a.pago_em))).reduce((s, a) => s + (Number(a.corridas_incluidas) || 0), 0);
+    const usadas = (p.corridas ?? []).filter((c) => c.status === "finalizada" && dentro(ms(c.fim_em ?? c.updated_at))).length;
+    const incluidas = (Number(vig.corridas_incluidas) || 0) + extras;
+    const restantes = Math.max(0, incluidas - usadas);
+    const nome = vig.tipo === "passe_semanal" ? "do passe semanal" : "do passe diário";
+    return {
+      aplica: true, incluidas, usadas, restantes, esgotada: restantes <= 0,
+      mensagem: restantes <= 0
+        ? `Franquia ${nome} esgotada (${usadas} de ${incluidas} corridas). Compre um pacote extra ou um novo passe.`
+        : `Franquia ${nome}: ${usadas} de ${incluidas} corridas usadas (restam ${restantes}, até ${horaCurta(fim)}).`,
+    };
+  }
   const comp = competenciaDe(agora);
   const doMes = (p.assinaturas ?? []).filter((a) => a.competencia === comp && a.status !== "cancelada");
   const mensal = doMes.find((a) => ehMensalidade(a));

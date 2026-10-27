@@ -47,10 +47,10 @@ export const ROTULOS_MODULO: Record<ModuloSistema, string> = {
 // Coleções de cada módulo — fonte única (colecoes.ts tipa a partir daqui e
 // acesso.ts usa como recursos da matriz de permissões).
 export const MODULOS_COLECOES = {
-  nucleo: ["operacoes", "usuarios", "perfis", "permissoes", "configuracoes", "notificacoes", "anexos", "logs_auditoria", "dispositivos", "sessoes", "sincronizacoes"],
+  nucleo: ["operacoes", "usuarios", "perfis", "permissoes", "configuracoes", "notificacoes", "anexos", "logs_auditoria", "dispositivos", "sessoes", "sincronizacoes", "comandos_app"],
   pessoas_veiculos: ["passageiros", "enderecos_passageiros", "motoristas", "veiculos", "documentos_motoristas", "documentos_veiculos", "vistorias_veiculos"],
   tarifas: ["categorias_servico", "tarifas", "zonas_tarifarias", "regras_tarifarias"],
-  corridas: ["solicitacoes_corridas", "ofertas_corridas", "corridas", "eventos_corrida", "rotas_corridas", "pontos_gps_corrida", "cancelamentos_corrida", "avaliacoes", "localizacoes_motoristas", "localizacoes_passageiros"],
+  corridas: ["solicitacoes_corridas", "ofertas_corridas", "corridas", "eventos_corrida", "rotas_corridas", "pontos_gps_corrida", "cancelamentos_corrida", "avaliacoes", "localizacoes_motoristas", "localizacoes_passageiros", "demanda_mapa"],
   financeiro: ["pagamentos", "carteiras", "transacoes", "repasses", "cupons", "vouchers", "cartoes_passageiros", "assinaturas_motoristas", "contas_motoristas", "lancamentos_contas"],
   beneficios: ["beneficios", "parceiros_beneficios", "beneficios_parceiros"],
   programas: ["programas_mobilidade", "beneficiarios_programas", "eventos_locais"],
