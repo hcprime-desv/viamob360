@@ -11,6 +11,8 @@ export type Configuracao = {
   logoRodapeUrl: string | null;
   faviconUrl: string | null;
   corPrimaria: string;
+  /** letras do modo escuro (admsite360); padrão #bcd8ff */
+  corTextoEscuro?: string;
   corDestaque: string;
   heroChamada: string;
   heroTitulo: string;

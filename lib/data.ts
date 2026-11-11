@@ -79,6 +79,7 @@ function mapearConfiguracao(docs: any[]): Configuracao {
     nomeSite: txt(d.nome_site, p.nomeSite), slogan: txt(d.slogan, p.slogan),
     logoUrl: url(d.logo), logoRodapeUrl: url(d.logo_rodape), faviconUrl: url(d.favicon),
     corPrimaria: HEX.test(d.cor_primaria) ? d.cor_primaria : p.corPrimaria,
+    corTextoEscuro: HEX.test(d.cor_texto_escuro) ? d.cor_texto_escuro : "#bcd8ff",
     corDestaque: HEX.test(d.cor_destaque) ? d.cor_destaque : p.corDestaque,
     heroChamada: txt(d.hero_chamada, p.heroChamada), heroTitulo: txt(d.hero_titulo, p.heroTitulo),
     heroTituloDestaque: txt(d.hero_titulo_destaque), heroTexto: txt(d.hero_texto, p.heroTexto), heroImagemUrl: url(d.hero_imagem),

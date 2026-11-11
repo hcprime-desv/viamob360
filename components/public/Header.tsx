@@ -4,6 +4,7 @@
 // "Baixar App". Sem área de operadora (tudo da operadora é no painel).
 // Páginas do painel com local "menu" entram no fim do menu.
 import Link from "next/link";
+import { BotaoTemaSite } from "./TemaSite";
 import { useState } from "react";
 import { Download, Menu, Search, X } from "lucide-react";
 import { useConfiguracao, usePaginas } from "./AoVivo";
@@ -49,6 +50,7 @@ export default function Header() {
           <a className="btn btn-primary so-mobile" href={app} onClick={fechar}><Download size={18} /> Baixar App</a>
         </nav>
         <div className="nav-actions">
+          <BotaoTemaSite />
           <a className="busca" href={linkSecao("ajuda")} aria-label="Buscar nas perguntas frequentes"><Search size={19} /></a>
           <a className="btn btn-primary btn-baixar" href={app}><Download size={19} /> Baixar App</a>
         </div>

@@ -37,7 +37,7 @@ export function AoVivoProvider({ configuracao, paginas, perguntas, cidades, chil
     try { if (nova) localStorage.setItem(CHAVE_CIDADE, nova.path); } catch { /* idem */ }
   };
   // Cores da Configuração do site sobrescrevem --blue/--green (globals.css).
-  const tema = { ["--blue" as any]: c.corPrimaria, ["--green" as any]: c.corDestaque } as React.CSSProperties;
+  const tema = { ["--blue" as any]: c.corPrimaria, ["--green" as any]: c.corDestaque, ["--cor-texto-escuro" as any]: c.corTextoEscuro } as React.CSSProperties;
   return (
     <Contexto.Provider value={{ configuracao: c, paginas: p, perguntas: q, cidades, cidade, escolherCidade }}>
       <div style={tema}>{children}</div>
