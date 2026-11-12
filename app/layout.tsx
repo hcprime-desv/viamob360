@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${titulo.variable} ${texto.variable}`} data-tema="claro" suppressHydrationWarning>
+    <html lang="pt-BR" className={`${titulo.variable} ${texto.variable}`} data-tema="escuro" suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: scriptTemaSite() }} /></head>
       <body>{children}</body>
     </html>
