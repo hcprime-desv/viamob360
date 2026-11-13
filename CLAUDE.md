@@ -8,7 +8,8 @@ Especificação em `documentacao/`: `ViaMob360_Documentacao_Projeto_Site.pdf`,
 `site_principal.png` (**referência visual** — conferir o layout contra ela
 depois de mexer na Home; captura com o Chrome headless, largura 1672).
 
-**Este repositório é só o site — não tem painel.** O conteúdo vem do painel
+**`/admin` próprio (13/11/2026)** — kit do monorepo (`python scripts/copiar-admin-site.py viamob`, `lib/admin/site.tsx`), com as
+mesmas coleções do painel. O conteúdo também pode ser editado no painel
 ViaMob360 (`D:\desv\producao\hc\projetos\ViaMob360`), grupo **ViaMob360 →
 Site público** (Configuração do site, Páginas, Perguntas frequentes,
 Avisos, Interessados), e o chat cai na fila do **OmniChannel** de lá. Os
