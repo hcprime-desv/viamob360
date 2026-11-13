@@ -1,0 +1,14 @@
+{
+ "site": "viamob",
+ "capturado_em": "2026-11-13T00:45:06.978Z",
+ "telas": [
+  {
+   "rota": "/",
+   "titulo": "Mobilidade que aproxima pessoas e cidades.",
+   "descricao": "",
+   "h1": "Mobilidade que aproxima pessoas e cidades.",
+   "lead": "A ViaMob360 conecta passageiros, motoristas parceiros, empresas e operadoras em um ecossistema de mobilidade mais seguro, justo, inteligente e eficiente.",
+   "imagem": "imagens/manual-01-inicio.png"
+  }
+ ]
+}
