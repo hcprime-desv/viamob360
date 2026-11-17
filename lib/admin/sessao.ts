@@ -7,6 +7,21 @@ import { BYTES_SALT, conferirSenha, gerarHashSenha, normalizarEmail, problemaSen
 import { alterar, criar, filtrar, lerDoc } from "./banco";
 import { SITE_ADMIN } from "./site";
 import { problemaValidade } from "./validade";
+import { getApp } from "firebase/app";
+import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut } from "firebase/auth";
+
+// FIREBASE AUTH (dono, 17/11/2026 — Auth em todos os painéis, sites e apps): a senha continua conferida aqui (PBKDF2) e a sessão
+// do Firebase Auth é aberta junto — o back-end do produto leva a senha cifrada ao Auth (authSync); se a conta ainda não estiver
+// lá, é criada na hora. Sair encerra as duas.
+async function entrarNoAuth(email: string, senha: string): Promise<boolean> {
+  try { await signInWithEmailAndPassword(getAuth(getApp()), email, senha); return true; } catch { return false; }
+}
+async function abrirSessaoAuth(email: string, senha: string) {
+  const auth = getAuth(getApp());
+  try { await signInWithEmailAndPassword(auth, email, senha); return; } catch { /* conta fora do Auth ou senha ainda não sincronizada */ }
+  try { await createUserWithEmailAndPassword(auth, email, senha); } catch { /* o back-end acerta em seguida */ }
+}
+const sairDoAuth = () => { try { void signOut(getAuth(getApp())); } catch { /* sem Auth */ } };
 
 export type Sessao = { id: string; nome: string; login: string; admin: boolean; permissoes: string[]; expira: number };
 
@@ -28,7 +43,7 @@ function gravarSessao(s: Sessao | null) {
   } catch { /* navegador sem storage: a sessão dura só esta aba */ }
 }
 
-export const sair = () => gravarSessao(null);
+export const sair = () => { sairDoAuth(); gravarSessao(null); };
 export const pode = (s: Sessao | null, permissao: string) => !!s && (s.admin || s.permissoes.includes(permissao));
 
 const ehAdmin = (u: any) => String(u.nivel) === "99" || u.perfil === "administrador" || SITE_ADMIN.perfis[u.perfil] === "*";
@@ -53,7 +68,10 @@ async function montarSessao(u: any): Promise<Sessao> {
 export async function entrar(identificador: string, senha: string): Promise<{ ok: true; sessao: Sessao } | { ok: false; erro: string }> {
   const id = normalizarEmail(identificador);
   if (!id || !senha) return { ok: false, erro: "Informe o e-mail (ou login) e a senha." };
-  let u = (await filtrar("usuarios", "email", id))[0] ?? (await filtrar("usuarios", "login", id))[0];
+  // AUTH PRIMEIRO (regras fechadas: `usuarios` só abre logado). Login sem "@" ainda funciona onde o banco está aberto.
+  const entrouNoAuth = id.includes("@") ? await entrarNoAuth(id, senha) : false;
+  let u = (await filtrar("usuarios", "email", id).catch(() => []))[0] ?? (id.includes("@") ? undefined : (await filtrar("usuarios", "login", id).catch(() => []))[0]);
+  if (!u && id.includes("@") && !entrouNoAuth) return { ok: false, erro: "E-mail ou senha incorretos." };
   if (!u && SITE_ADMIN.colecaoUsuariosLegado) {
     const r = await entrarLegado(id, senha);
     if (r === "senha") return { ok: false, erro: "Senha incorreta." };
@@ -61,11 +79,12 @@ export async function entrar(identificador: string, senha: string): Promise<{ ok
   }
   if (!u) return { ok: false, erro: "Usuário não encontrado. Verifique o e-mail ou login." };
   if (!u.senha_hash) return { ok: false, erro: "Este usuário ainda não tem senha. Peça ao administrador para definir a senha." };
-  if (!(await conferirSenha(senha, u))) return { ok: false, erro: "Senha incorreta." };
+  if (!entrouNoAuth && !(await conferirSenha(senha, u))) return { ok: false, erro: "Senha incorreta." };
   if (u.status === "bloqueado") return { ok: false, erro: "Usuário bloqueado. Entre em contato com o administrador." };
   if (u.status !== "ativo") return { ok: false, erro: "Usuário desativado. Entre em contato com o administrador." };
   const vencido = problemaValidade(u); // validade do usuário (perpétua ou por tempo)
   if (vencido) return { ok: false, erro: vencido };
+  if (!entrouNoAuth && String(u.email ?? "").includes("@")) await abrirSessaoAuth(normalizarEmail(u.email), senha);
   const sessao = await montarSessao(u);
   gravarSessao(sessao);
   await alterar("usuarios", sessao.id, { ultimo_acesso_em: Date.now() }).catch(() => {});
@@ -77,7 +96,7 @@ export async function entrar(identificador: string, senha: string): Promise<{ ok
 export async function revalidarSessao(s: Sessao): Promise<Sessao | null> {
   const u = await lerDoc("usuarios", s.id).catch(() => undefined);
   if (u === undefined) return s; // sem rede: mantém
-  if (!u || u.status !== "ativo" || problemaValidade(u)) { gravarSessao(null); return null; }
+  if (!u || u.status !== "ativo" || problemaValidade(u)) { sair(); return null; }
   const nova = { ...(await montarSessao(u)), expira: s.expira };
   gravarSessao(nova);
   return nova;
